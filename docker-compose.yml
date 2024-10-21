@@ -1,0 +1,28 @@
+services:
+  ewm-service:
+    build: ./event-management-service
+    image: event-management-service
+    container_name: event-container
+    ports:
+      - "8080:8080"
+    depends_on:
+      - ems-db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://ems-db:5432/ewm
+      - SPRING_DATASOURCE_USERNAME=ems
+      - SPRING_DATASOURCE_PASSWORD=ems
+
+  ems-db:
+    image: postgres:16.1
+    container_name: ems-db
+    ports:
+      - "6532:5432"
+    environment:
+      - POSTGRES_PASSWORD=ems
+      - POSTGRES_USER=ems
+      - POSTGRES_DB=ems
+    healthcheck:
+      test: pg_isready -q -d $$POSTGRES_DB -U $$POSTGRES_USER
+      timeout: 5s
+      interval: 5s
+      retries: 10

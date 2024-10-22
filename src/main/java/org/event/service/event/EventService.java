@@ -22,6 +22,13 @@ public class EventService {
     private final LocationRepository locationRepository;
 
     public Event createEvent(Event newEvent) {
+        var locationEvent = locationRepository.findById(newEvent.locationId())
+                .orElseThrow(() -> new EntityNotFoundException("Location with id = " + newEvent.locationId() + " not found"));
+
+        if (locationEvent.getCapacity() < newEvent.maxPlaces()) {
+            throw new IllegalArgumentException("Площадка не может вместить заявленное количество участников");
+        }
+
         var event = entityConverter.toEntity(newEvent);
 
         return entityConverter.toDomain(
@@ -52,7 +59,7 @@ public class EventService {
 
         eventRepository.updateEvent(
             eventId,
-            eventDto.eventDate(),
+            eventDto.date(),
             eventDto.duration(),
             eventDto.cost(),
             eventDto.maxPlaces(),
@@ -87,13 +94,14 @@ public class EventService {
         if (eventSearchFilter.dateStartBefore() != null) {
             predicates = criteriaBuilder.and(
                     predicates,
-                    criteriaBuilder.lessThanOrEqualTo(root.get("eventDate"), eventSearchFilter.dateStartBefore())
+                    criteriaBuilder.lessThanOrEqualTo(root.get("date"), eventSearchFilter.dateStartBefore())
             );
         }
+        //ругается, что нет такого поля у сущности
         if (eventSearchFilter.dateStartAfter() != null) {
             predicates = criteriaBuilder.and(
                     predicates,
-                    criteriaBuilder.greaterThanOrEqualTo(root.get("eventDate"), eventSearchFilter.dateStartAfter())
+                    criteriaBuilder.greaterThanOrEqualTo(root.get("date"), eventSearchFilter.dateStartAfter())
             );
         }
         if (eventSearchFilter.placesMax() != null) {
@@ -109,7 +117,7 @@ public class EventService {
             );
         }
         if (eventSearchFilter.locationId() != null) {
-            if (locationRepository.existsById(eventSearchFilter.locationId())) {
+            if (!locationRepository.existsById(eventSearchFilter.locationId())) {
                 throw new EntityNotFoundException(
                         "Location with id = " + eventSearchFilter.locationId() + " not found");
             }
@@ -118,6 +126,7 @@ public class EventService {
                 criteriaBuilder.equal(root.get("locationId"), eventSearchFilter.locationId())
             );
         }
+        //не работает это фильтр
         if (eventSearchFilter.eventStatus() != null) {
             predicates = criteriaBuilder.and(
                     predicates,

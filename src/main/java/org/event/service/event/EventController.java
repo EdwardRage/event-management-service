@@ -56,6 +56,12 @@ public class EventController {
 
     @PostMapping("/search")
     public ResponseEntity<List<EventDto>> searchEvents(@RequestBody EventSearchFilter eventSearchFilter) {
-        eventService.getEventWithFilter(eventSearchFilter);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        eventService.getEventWithFilter(eventSearchFilter).stream()
+                                .map(dtoConverter::toDto)
+                                .toList()
+                );
     }
+
 }

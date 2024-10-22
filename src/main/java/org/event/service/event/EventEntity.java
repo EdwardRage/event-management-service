@@ -19,7 +19,7 @@ public class EventEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private LocalDateTime eventDate;
+    private LocalDateTime event;
     private Integer duration;
     private Integer cost;
     private Integer maxPlaces;

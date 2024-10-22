@@ -9,7 +9,7 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
 
     @Query("""
         update EventEntity ev
-        set ev.eventDate = :eventDate,
+        set ev.event = :eventDate,
             ev.duration = :duration,
             ev.cost = :cost,
             ev.maxPlaces = :maxPlaces,

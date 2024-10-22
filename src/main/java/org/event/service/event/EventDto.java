@@ -1,8 +1,7 @@
 package org.event.service.event;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Null;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
 
@@ -11,15 +10,20 @@ public record EventDto(
         Long id,
 
         @NotNull
-        LocalDateTime eventDate,
+        @Future
+        @JsonFormat(shape = JsonFormat.Shape.STRING)
+        LocalDateTime date,
 
         @NotNull
+        @Positive
         Integer duration,
 
         @NotNull
+        @PositiveOrZero
         Integer cost,
 
         @NotNull
+        @Positive
         Integer maxPlaces,
 
         @NotNull

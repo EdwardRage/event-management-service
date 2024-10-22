@@ -19,7 +19,7 @@ public record LocationDto(
         Integer capacity,
 
         @NotBlank
-        @Size(max = 50)
+        @Size(max = 100)
         String description
 ) {
 }

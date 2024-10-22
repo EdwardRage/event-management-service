@@ -13,14 +13,15 @@ public class EventEntityConverter {
                 event.cost(),
                 event.maxPlaces(),
                 event.locationId(),
-                event.name()
+                event.name(),
+                EventStatus.STARTED
         );
     }
 
     public Event toDomain(EventEntity eventEntity) {
         return new Event(
                 eventEntity.getId(),
-                eventEntity.getEventDate(),
+                eventEntity.getEvent(),
                 eventEntity.getDuration(),
                 eventEntity.getCost(),
                 eventEntity.getMaxPlaces(),

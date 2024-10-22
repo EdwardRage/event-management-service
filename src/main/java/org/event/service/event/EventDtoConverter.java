@@ -20,7 +20,7 @@ public class EventDtoConverter {
     public Event toDomain(EventDto eventDto) {
         return new Event(
                 eventDto.id(),
-                eventDto.eventDate(),
+                eventDto.date(),
                 eventDto.duration(),
                 eventDto.cost(),
                 eventDto.maxPlaces(),

@@ -7,10 +7,16 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import org.event.service.event.registration.RegistrationEntity;
+import org.event.service.event.registration.RegistrationRepository;
 import org.event.service.location.LocationRepository;
+import org.event.service.user.UserEntity;
+import org.event.service.user.UserRepository;
+import org.event.service.user.UserRole;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -20,6 +26,8 @@ public class EventService {
     private final EventEntityConverter entityConverter;
     private final EntityManager entityManager;
     private final LocationRepository locationRepository;
+    private final UserRepository userRepository;
+    private final RegistrationRepository registrationRepository;
 
     public Event createEvent(Event newEvent) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -29,7 +37,19 @@ public class EventService {
             throw new IllegalArgumentException("Площадка не может вместить заявленное количество участников");
         }
 
-        var event = entityConverter.toEntity(newEvent);
+        //var event = entityConverter.toEntity(newEvent);
+        var event = new EventEntity(
+                newEvent.id(),
+                newEvent.eventDate(),
+                newEvent.duration(),
+                newEvent.cost(),
+                newEvent.maxPlaces(),
+                newEvent.locationId(),
+                newEvent.name(),
+                newEvent.ownerId(),
+                EventStatus.WAIT_START.name(),
+                0
+        );
 
         return entityConverter.toDomain(
             eventRepository.save(event)
@@ -37,11 +57,18 @@ public class EventService {
     }
 
     @Transactional
-    public void deleteEvent(Long eventId) {
+    public void deleteEvent(Long eventId, Long userId) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
+        var user = userRepository.findById(userId)
+                .orElseThrow();
 
-        eventRepository.delete(event);
+        checkDenied(event, user);
+        checkEventStatus(event);
+        checkEventStatusForStarted(event);
+
+        event.setStatus(EventStatus.CLOSED.name());
+        eventRepository.save(event);
     }
 
     public Event getEventById(Long eventId) {
@@ -52,10 +79,15 @@ public class EventService {
     }
 
     @Transactional
-    public Event updateEvent(Long eventId, EventDto eventDto) {
-        if (eventRepository.existsById(eventId)) {
-            throw new EntityNotFoundException("Event with id = " + eventId + " not found");
-        }
+    public Event updateEvent(Long eventId, EventDto eventDto, Long userId) {
+        var event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
+
+        var user = userRepository.findById(userId)
+                .orElseThrow();
+        checkDenied(event, user);
+        checkEventStatus(event);
+        checkEventStatusForStarted(event);
 
         eventRepository.updateEvent(
             eventId,
@@ -158,5 +190,78 @@ public class EventService {
                 .getResultList().stream()
                 .map(entityConverter::toDomain)
                 .toList();
+    }
+
+    public List<Event> getEventsByOwnerId(Long id) {
+        return eventRepository.findAllByOwnerId(id).stream()
+                .map(entityConverter::toDomain)
+                .toList();
+    }
+
+    @Transactional
+    public void userRegistrationForEvent(Long eventId, Long userId) {
+
+        var event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
+
+        var user = userRepository.findById(userId)
+                .orElseThrow();
+
+        checkEventStatus(event);
+        checkRegistrationCondition(event, user);
+
+        event.setOccupiedPlaces(event.getOccupiedPlaces() + 1);
+        eventRepository.save(event);
+
+        var registration = new RegistrationEntity(
+                null,
+                event.getId(),
+                user.getId(),
+                LocalDateTime.now()
+        );
+        registrationRepository.save(registration);
+    }
+
+    private void checkRegistrationCondition(EventEntity event, UserEntity user) {
+        if (event.getOwnerId().equals(user.getId())) {
+            throw new IllegalArgumentException("Owner can't register for event");
+        }
+        if (!event.getStatus().equals(EventStatus.WAIT_START.name()) && !event.getStatus().equals(EventStatus.STARTED.name())) {
+            throw new IllegalArgumentException("Registration is already closed");
+        }
+        if (event.getOccupiedPlaces() >= event.getMaxPlaces()) {
+            throw new IllegalArgumentException("Sold out!");
+        }
+        if (registrationRepository.existsByEventIdAndUserId(event.getId(), user.getId())) {
+            throw new IllegalArgumentException("The user is already registered for the event");
+        }
+    }
+
+    private void checkDenied(EventEntity event, UserEntity user) {
+        if (!event.getOwnerId().equals(user.getId()) && !user.getRole().equals(UserRole.ADMIN.name())) {
+            throw new IllegalArgumentException("Only the admin or owner can delete an event");
+        }
+    }
+
+    private void checkEventStatus(EventEntity event) {
+        LocalDateTime localDateTime = LocalDateTime.now();
+        if (event.getStatus().equals(EventStatus.CLOSED.name())) {
+            throw new IllegalArgumentException("This event already CLOSED");
+        }
+        if (event.getDate().isBefore(localDateTime)
+            && event.getDate().plusMinutes(event.getDuration()).isAfter(LocalDateTime.now())
+        ) {
+            event.setStatus(EventStatus.STARTED.name());
+            eventRepository.save(event);
+        } else if (event.getDate().plusMinutes(event.getDuration()).isAfter(LocalDateTime.now())) {
+            event.setStatus(EventStatus.FINISHED.name());
+            eventRepository.save(event);
+        }
+    }
+
+    private void checkEventStatusForStarted(EventEntity event) {
+        if (!event.getStatus().equals(EventStatus.WAIT_START.name())) {
+            throw new IllegalArgumentException("the event cannot be cancelled or update");
+        }
     }
 }

@@ -9,6 +9,9 @@ public record Event(
         Integer cost,
         Integer maxPlaces,
         Long locationId,
-        String name
+        String name,
+        Long ownerId,
+        EventStatus status,
+        Integer occupiedPlaces
 ) {
 }

@@ -14,19 +14,24 @@ public class EventEntityConverter {
                 event.maxPlaces(),
                 event.locationId(),
                 event.name(),
-                EventStatus.STARTED
+                event.ownerId(),
+                event.status().name(),
+                event.occupiedPlaces()
         );
     }
 
     public Event toDomain(EventEntity eventEntity) {
         return new Event(
                 eventEntity.getId(),
-                eventEntity.getEvent(),
+                eventEntity.getDate(),
                 eventEntity.getDuration(),
                 eventEntity.getCost(),
                 eventEntity.getMaxPlaces(),
                 eventEntity.getLocationId(),
-                eventEntity.getName()
+                eventEntity.getName(),
+                eventEntity.getOwnerId(),
+                EventStatus.valueOf(eventEntity.getStatus()),
+                eventEntity.getOccupiedPlaces()
         );
     }
 }

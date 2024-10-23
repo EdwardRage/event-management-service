@@ -28,7 +28,7 @@ public class JwtTokenManager {
                 .subject(login)
                 .signWith(key)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() - expirationTime))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .compact();
     }
 

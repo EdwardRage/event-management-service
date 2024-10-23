@@ -2,8 +2,10 @@ package org.event.service.configuration.jwt;
 
 import lombok.RequiredArgsConstructor;
 import org.event.service.user.SignInRequest;
+import org.event.service.user.User;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,5 +22,13 @@ public class JwtAuthenticationService {
                 )
         );
         return jwtTokenManager.generateJwt(signInRequest.login());
+    }
+
+    public User getCurrentAuthenticationUserOrThrow() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            throw new IllegalArgumentException("Authentication not present");
+        }
+        return (User) authentication.getPrincipal();
     }
 }

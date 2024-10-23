@@ -1,6 +1,7 @@
 package org.event.service.event;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import jakarta.annotation.Nullable;
 import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ public record EventDto(
         LocalDateTime date,
 
         @NotNull
-        @Positive
+        @Min(30)
         Integer duration,
 
         @NotNull
@@ -30,6 +31,13 @@ public record EventDto(
         Long locationId,
 
         @NotBlank
-        String name
+        String name,
+
+        @Nullable
+        Long ownerId,
+
+        EventStatus status,
+
+        Integer occupiedPlaces
 ) {
 }

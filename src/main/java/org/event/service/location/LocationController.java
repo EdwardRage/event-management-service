@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,6 +19,7 @@ public class LocationController {
     private final LocationDtoConverter dtoConverter;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<LocationDto> createLocation(@RequestBody @Valid LocationDto locationDto) {
         Location locationResponse = locationService.createLocation(dtoConverter.toDomain(locationDto));
         log.info("New location added:{} ", locationResponse.name());
@@ -42,6 +44,7 @@ public class LocationController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteLocation(@PathVariable(name = "id") Long locationId) {
         locationService.deleteLocation(locationId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
@@ -49,6 +52,7 @@ public class LocationController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public LocationDto updateLocation(
             @PathVariable(name = "id") Long locationId,
             @RequestBody @Valid LocationDto locationUpdateDto) {

@@ -96,4 +96,28 @@ public class EventController {
         return ResponseEntity.status(HttpStatus.OK)
                 .build();
     }
+
+    @DeleteMapping("/registrations/cansel/{eventId}")
+    @PreAuthorize("hasAuthority('USER')")
+    public ResponseEntity<Void> canselRegistration(@PathVariable Long eventId) {
+        var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
+
+        eventService.canselRegistration(eventId, currentUser.id());
+        log.info("Registration cansel");
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .build();
+    }
+
+    @GetMapping("/registrations/my")
+    @PreAuthorize("hasAuthority('USER')")
+    public ResponseEntity<List<EventDto>> getEventsRegistrationByUser() {
+        var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
+
+        List<EventDto> events = eventService.getEventsByUser(currentUser.id()).stream()
+                .map(dtoConverter::toDto)
+                .toList();
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(events);
+    }
 }

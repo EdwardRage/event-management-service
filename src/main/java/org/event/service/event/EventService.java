@@ -14,6 +14,7 @@ import org.event.service.user.UserEntity;
 import org.event.service.user.UserRepository;
 import org.event.service.user.UserRole;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -56,7 +57,7 @@ public class EventService {
         );
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void deleteEvent(Long eventId, Long userId) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -78,7 +79,7 @@ public class EventService {
         return entityConverter.toDomain(event);
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.SUPPORTS)
     public Event updateEvent(Long eventId, EventDto eventDto, Long userId) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -129,7 +130,6 @@ public class EventService {
                     criteriaBuilder.lessThanOrEqualTo(root.get("date"), eventSearchFilter.dateStartBefore())
             );
         }
-        //ругается, что нет такого поля у сущности
         if (eventSearchFilter.dateStartAfter() != null) {
             predicates = criteriaBuilder.and(
                     predicates,
@@ -158,7 +158,6 @@ public class EventService {
                 criteriaBuilder.equal(root.get("locationId"), eventSearchFilter.locationId())
             );
         }
-        //не работает это фильтр
         if (eventSearchFilter.eventStatus() != null) {
             predicates = criteriaBuilder.and(
                     predicates,
@@ -198,7 +197,7 @@ public class EventService {
                 .toList();
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.SUPPORTS)
     public void userRegistrationForEvent(Long eventId, Long userId) {
 
         var event = eventRepository.findById(eventId)
@@ -220,6 +219,23 @@ public class EventService {
                 LocalDateTime.now()
         );
         registrationRepository.save(registration);
+    }
+
+    @Transactional(propagation = Propagation.SUPPORTS)
+    public void canselRegistration(Long eventId, Long id) {
+        var registration = registrationRepository.findByEventIdAndUserId(eventId, id)
+                .orElseThrow(() -> new EntityNotFoundException("user is not registered"));
+        var event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
+
+        checkEventStatus(event);
+        if (!event.getStatus().equals(EventStatus.WAIT_START.name())) {
+            throw new IllegalArgumentException("Already cannot cansel registration");
+        }
+        registrationRepository.delete(registration);
+
+        event.setOccupiedPlaces(event.getOccupiedPlaces() - 1);
+        eventRepository.save(event);
     }
 
     private void checkRegistrationCondition(EventEntity event, UserEntity user) {
@@ -253,7 +269,7 @@ public class EventService {
         ) {
             event.setStatus(EventStatus.STARTED.name());
             eventRepository.save(event);
-        } else if (event.getDate().plusMinutes(event.getDuration()).isAfter(LocalDateTime.now())) {
+        } else if (event.getDate().plusMinutes(event.getDuration()).isBefore(LocalDateTime.now())) {
             event.setStatus(EventStatus.FINISHED.name());
             eventRepository.save(event);
         }
@@ -263,5 +279,17 @@ public class EventService {
         if (!event.getStatus().equals(EventStatus.WAIT_START.name())) {
             throw new IllegalArgumentException("the event cannot be cancelled or update");
         }
+    }
+
+
+    public List<Event> getEventsByUser(Long id) {
+
+        List<Long> eventIds = registrationRepository.findEventIdsByUserId(id);
+
+        List<EventEntity> eventsList = eventRepository.findAllEvents(eventIds);
+
+        return eventsList.stream()
+                .map(entityConverter::toDomain)
+                .toList();
     }
 }

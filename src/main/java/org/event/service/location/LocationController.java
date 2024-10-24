@@ -47,6 +47,7 @@ public class LocationController {
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteLocation(@PathVariable(name = "id") Long locationId) {
         locationService.deleteLocation(locationId);
+        log.info("Location deleted");
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .build();
     }

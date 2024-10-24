@@ -3,6 +3,7 @@ package org.event.service.location;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -31,13 +32,16 @@ public class LocationService {
         return entityConverter.toDomain(locationEntity);
     }
 
+    @Transactional
     public void deleteLocation(Long locationId) {
         var locationEntity = locationRepository.findById(locationId)
                 .orElseThrow(() -> new EntityNotFoundException("Location with id= " + locationId + " not found"));
+        //добавить отмену всех мероприятий в этой локации
+        locationRepository.deleteLocationFromEvent(locationId);
         locationRepository.delete(locationEntity);
     }
 
-
+    @Transactional
     public Location updateLocation(Long locationId, Location locationDto) {
         if (!locationRepository.existsById(locationId)) {
             throw new EntityNotFoundException("Location with id= " + locationId + " not found");

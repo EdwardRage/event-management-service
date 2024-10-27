@@ -25,8 +25,8 @@ public class EventController {
     public ResponseEntity<EventDto> createEvent(@RequestBody @Valid EventDto eventDto) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        Event eventDomain = dtoConverter.toDomainWithOwnerId(eventDto, currentUser.id());
-        EventDto event = dtoConverter.toDto(eventService.createEvent(eventDomain));
+        Event eventDomain = dtoConverter.toDomain(eventDto);
+        EventDto event = dtoConverter.toDto(eventService.createEvent(eventDomain, currentUser.login()));
         log.info("Create new event: {}", eventDto.name());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(event);
@@ -37,7 +37,7 @@ public class EventController {
     public ResponseEntity<Void> deleteEvent(@PathVariable Long eventId) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        eventService.deleteEvent(eventId, currentUser.id());
+        eventService.deleteEvent(eventId, currentUser.login());
         log.info("Event with id={} delete", eventId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .build();
@@ -58,7 +58,7 @@ public class EventController {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
         EventDto eventResponse = dtoConverter.toDto(
-                eventService.updateEvent(eventId, eventDto, currentUser.id())
+                eventService.updateEvent(eventId, eventDto, currentUser.login())
         );
         log.info("Event with id={} update", eventId);
         return ResponseEntity.status(HttpStatus.OK)
@@ -79,9 +79,11 @@ public class EventController {
     @PreAuthorize("hasAuthority('USER')")
     public ResponseEntity<List<EventDto>> getEventsByUser() {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
-        List<EventDto> events = eventService.getEventsByOwnerId(currentUser.id()).stream()
+
+        List<EventDto> events = eventService.getEventsByOwner(currentUser.login()).stream()
                 .map(dtoConverter::toDto)
                 .toList();
+
         return ResponseEntity.status(HttpStatus.OK)
                 .body(events);
     }
@@ -91,8 +93,8 @@ public class EventController {
     public ResponseEntity<Void> userRegistrationForEvent(@PathVariable Long eventId) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        eventService.userRegistrationForEvent(eventId, currentUser.id());
-        log.info("User with userId={} successful register for event withe eventId={}", currentUser.id(), eventId);
+        eventService.userRegistrationForEvent(eventId, currentUser.login());
+        log.info("User with userId={} successful register for event withe eventId={}", currentUser.login(), eventId);
         return ResponseEntity.status(HttpStatus.OK)
                 .build();
     }
@@ -102,7 +104,7 @@ public class EventController {
     public ResponseEntity<Void> canselRegistration(@PathVariable Long eventId) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        eventService.canselRegistration(eventId, currentUser.id());
+        eventService.canselRegistration(eventId, currentUser.login());
         log.info("Registration cansel");
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .build();
@@ -113,7 +115,7 @@ public class EventController {
     public ResponseEntity<List<EventDto>> getEventsRegistrationByUser() {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        List<EventDto> events = eventService.getEventsByUser(currentUser.id()).stream()
+        List<EventDto> events = eventService.getEventsByUser(currentUser.login()).stream()
                 .map(dtoConverter::toDto)
                 .toList();
 

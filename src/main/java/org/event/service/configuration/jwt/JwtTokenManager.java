@@ -22,13 +22,14 @@ public class JwtTokenManager {
         this.expirationTime = expirationTime;
     }
 
-    public String generateJwt(String login) {
+    public String generateJwt(String login, String role) {
         return Jwts
                 .builder()
                 .subject(login)
-                .signWith(key)
+                .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
+                .signWith(key)
                 .compact();
     }
 
@@ -40,6 +41,16 @@ public class JwtTokenManager {
                 .parseSignedClaims(jwt)
                 .getPayload()
                 .getSubject();
+    }
+
+    public String getRoleFromJwt(String jwt) {
+        return Jwts
+                .parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(jwt)
+                .getPayload()
+                .get("role", String.class);
     }
 }
 

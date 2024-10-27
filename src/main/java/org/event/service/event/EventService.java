@@ -30,15 +30,17 @@ public class EventService {
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
 
-    public Event createEvent(Event newEvent) {
+    public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
                 .orElseThrow(() -> new EntityNotFoundException("Location with id = " + newEvent.locationId() + " not found"));
+
+        var owner = userRepository.findByLogin(login)
+                .orElseThrow();
 
         if (locationEvent.getCapacity() < newEvent.maxPlaces()) {
             throw new IllegalArgumentException("Площадка не может вместить заявленное количество участников");
         }
 
-        //var event = entityConverter.toEntity(newEvent);
         var event = new EventEntity(
                 newEvent.id(),
                 newEvent.eventDate(),
@@ -47,7 +49,7 @@ public class EventService {
                 newEvent.maxPlaces(),
                 newEvent.locationId(),
                 newEvent.name(),
-                newEvent.ownerId(),
+                owner.getId(),
                 EventStatus.WAIT_START.name(),
                 0
         );
@@ -58,10 +60,10 @@ public class EventService {
     }
 
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void deleteEvent(Long eventId, Long userId) {
+    public void deleteEvent(Long eventId, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
-        var user = userRepository.findById(userId)
+        var user = userRepository.findByLogin(login)
                 .orElseThrow();
 
         checkDenied(event, user);
@@ -80,11 +82,11 @@ public class EventService {
     }
 
     @Transactional(propagation = Propagation.SUPPORTS)
-    public Event updateEvent(Long eventId, EventDto eventDto, Long userId) {
+    public Event updateEvent(Long eventId, EventDto eventDto, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
 
-        var user = userRepository.findById(userId)
+        var user = userRepository.findByLogin(login)
                 .orElseThrow();
         checkDenied(event, user);
         checkEventStatus(event);
@@ -191,19 +193,22 @@ public class EventService {
                 .toList();
     }
 
-    public List<Event> getEventsByOwnerId(Long id) {
-        return eventRepository.findAllByOwnerId(id).stream()
+    public List<Event> getEventsByOwner(String login) {
+        var user = userRepository.findByLogin(login)
+                .orElseThrow();
+
+        return eventRepository.findAllByOwnerId(user.getId()).stream()
                 .map(entityConverter::toDomain)
                 .toList();
     }
 
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void userRegistrationForEvent(Long eventId, Long userId) {
+    public void userRegistrationForEvent(Long eventId, String login) {
 
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
 
-        var user = userRepository.findById(userId)
+        var user = userRepository.findByLogin(login)
                 .orElseThrow();
 
         checkEventStatus(event);
@@ -222,8 +227,11 @@ public class EventService {
     }
 
     @Transactional(propagation = Propagation.SUPPORTS)
-    public void canselRegistration(Long eventId, Long id) {
-        var registration = registrationRepository.findByEventIdAndUserId(eventId, id)
+    public void canselRegistration(Long eventId, String login) {
+        var user = userRepository.findByLogin(login)
+                .orElseThrow();
+
+        var registration = registrationRepository.findByEventIdAndUserId(eventId, user.getId())
                 .orElseThrow(() -> new EntityNotFoundException("user is not registered"));
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -282,9 +290,11 @@ public class EventService {
     }
 
 
-    public List<Event> getEventsByUser(Long id) {
+    public List<Event> getEventsByUser(String login) {
+        var user = userRepository.findByLogin(login)
+                .orElseThrow();
 
-        List<Long> eventIds = registrationRepository.findEventIdsByUserId(id);
+        List<Long> eventIds = registrationRepository.findEventIdsByUserId(user.getId());
 
         List<EventEntity> eventsList = eventRepository.findAllEvents(eventIds);
 

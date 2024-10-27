@@ -2,7 +2,8 @@ package org.event.service.configuration.jwt;
 
 import lombok.RequiredArgsConstructor;
 import org.event.service.user.SignInRequest;
-import org.event.service.user.User;
+import org.event.service.user.UserJwt;
+import org.event.service.user.UserRole;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,14 +22,18 @@ public class JwtAuthenticationService {
                         signInRequest.password()
                 )
         );
-        return jwtTokenManager.generateJwt(signInRequest.login());
+        if (signInRequest.login().equals("admin")) {
+            return jwtTokenManager.generateJwt(signInRequest.login(), UserRole.ADMIN.name());
+        } else {
+            return jwtTokenManager.generateJwt(signInRequest.login(), UserRole.USER.name());
+        }
     }
 
-    public User getCurrentAuthenticationUserOrThrow() {
+    public UserJwt getCurrentAuthenticationUserOrThrow() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             throw new IllegalArgumentException("Authentication not present");
         }
-        return (User) authentication.getPrincipal();
+        return (UserJwt) authentication.getPrincipal();
     }
 }

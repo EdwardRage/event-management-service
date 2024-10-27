@@ -45,6 +45,7 @@ public class UserController {
         log.info("Get request sign in login={}", signInRequest.login());
 
         var token = authenticationService.authenticationUser(signInRequest);
+
         return ResponseEntity.status(HttpStatus.OK)
                 .body(new JwtTokenResponse(token));
     }

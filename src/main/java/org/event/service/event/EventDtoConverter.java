@@ -20,22 +20,7 @@ public class EventDtoConverter {
         );
     }
 
-    public Event toDomainWithOwnerId(EventDto eventDto, Long ownerId) {
-        return new Event(
-                eventDto.id(),
-                eventDto.date(),
-                eventDto.duration(),
-                eventDto.cost(),
-                eventDto.maxPlaces(),
-                eventDto.locationId(),
-                eventDto.name(),
-                ownerId,
-                eventDto.status(),
-                eventDto.occupiedPlaces()
-        );
-    }
-
-    /*public Event toDomain(EventDto eventDto) {
+    public Event toDomain(EventDto eventDto) {
         return new Event(
                 eventDto.id(),
                 eventDto.date(),
@@ -45,7 +30,8 @@ public class EventDtoConverter {
                 eventDto.locationId(),
                 eventDto.name(),
                 eventDto.ownerId(),
+                eventDto.status(),
                 eventDto.occupiedPlaces()
         );
-    }*/
+    }
 }

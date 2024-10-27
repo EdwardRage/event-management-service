@@ -1,16 +1,12 @@
 package org.event.service.configuration.jwt;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.event.service.user.User;
-import org.event.service.user.UserEntityConverter;
-import org.event.service.user.UserRepository;
-import org.event.service.user.UserService;
+import org.event.service.user.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,8 +22,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JwtTokenFilter extends OncePerRequestFilter {
     private final JwtTokenManager jwtTokenManager;
-    private final UserRepository userRepository;
-    private final UserEntityConverter entityConverter;
 
     @Override
     protected void doFilterInternal(
@@ -47,23 +41,25 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         var jwtToken = authorizationHeader.substring(7);
 
         String login;
+        String role;
         try {
             login = jwtTokenManager.getLoginFromJwt(jwtToken);
+            role = jwtTokenManager.getRoleFromJwt(jwtToken);
         } catch (Exception e) {
             log.error("Error while reading jwt", e);
             filterChain.doFilter(request, response);
             return;
         }
 
-        var userEntity = userRepository.findByLogin(login)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-
-        var user = entityConverter.toDomain(userEntity);
+        var user = new UserJwt(
+                login,
+                role
+        );
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(
                 user,
                 null,
-                List.of(new SimpleGrantedAuthority(user.role().toString()))
+                List.of(new SimpleGrantedAuthority(role))
         );
 
         SecurityContextHolder.getContext().setAuthentication(token);

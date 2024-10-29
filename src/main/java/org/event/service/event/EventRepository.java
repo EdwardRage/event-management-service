@@ -39,4 +39,10 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
         where ev.id in :eventIds
         """)
     List<EventEntity> findAllEvents(List<Long> eventIds);
+
+    @Query("""
+        select ev from EventEntity ev
+        where ev.status = 'WAIT_START' or ev.status = 'STARTED'
+        """)
+    List<EventEntity> findAllEventsByWaitStartOrStarted();
 }

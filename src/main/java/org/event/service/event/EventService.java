@@ -7,12 +7,14 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.event.service.event.registration.RegistrationEntity;
 import org.event.service.event.registration.RegistrationRepository;
 import org.event.service.location.LocationRepository;
 import org.event.service.user.UserEntity;
 import org.event.service.user.UserRepository;
 import org.event.service.user.UserRole;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EventService {
@@ -29,6 +32,7 @@ public class EventService {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final RegistrationRepository registrationRepository;
+    private final static Long FIXED_RATE_INTERVAL = 60_000L;
 
     public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -67,7 +71,6 @@ public class EventService {
                 .orElseThrow();
 
         checkDenied(event, user);
-        checkEventStatus(event);
         checkEventStatusForStarted(event);
 
         event.setStatus(EventStatus.CLOSED.name());
@@ -81,7 +84,7 @@ public class EventService {
         return entityConverter.toDomain(event);
     }
 
-    @Transactional(propagation = Propagation.SUPPORTS)
+    @Transactional()
     public Event updateEvent(Long eventId, EventDto eventDto, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -89,7 +92,6 @@ public class EventService {
         var user = userRepository.findByLogin(login)
                 .orElseThrow();
         checkDenied(event, user);
-        checkEventStatus(event);
         checkEventStatusForStarted(event);
 
         eventRepository.updateEvent(
@@ -211,7 +213,6 @@ public class EventService {
         var user = userRepository.findByLogin(login)
                 .orElseThrow();
 
-        checkEventStatus(event);
         checkRegistrationCondition(event, user);
 
         event.setOccupiedPlaces(event.getOccupiedPlaces() + 1);
@@ -236,7 +237,6 @@ public class EventService {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
 
-        checkEventStatus(event);
         if (!event.getStatus().equals(EventStatus.WAIT_START.name())) {
             throw new IllegalArgumentException("Already cannot cansel registration");
         }
@@ -267,23 +267,8 @@ public class EventService {
         }
     }
 
-    private void checkEventStatus(EventEntity event) {
-        LocalDateTime localDateTime = LocalDateTime.now();
-        if (event.getStatus().equals(EventStatus.CLOSED.name())) {
-            throw new IllegalArgumentException("This event already CLOSED");
-        }
-        if (event.getDate().isBefore(localDateTime)
-            && event.getDate().plusMinutes(event.getDuration()).isAfter(LocalDateTime.now())
-        ) {
-            event.setStatus(EventStatus.STARTED.name());
-            eventRepository.save(event);
-        } else if (event.getDate().plusMinutes(event.getDuration()).isBefore(LocalDateTime.now())) {
-            event.setStatus(EventStatus.FINISHED.name());
-            eventRepository.save(event);
-        }
-    }
-
     private void checkEventStatusForStarted(EventEntity event) {
+
         if (!event.getStatus().equals(EventStatus.WAIT_START.name())) {
             throw new IllegalArgumentException("the event cannot be cancelled or update");
         }
@@ -301,5 +286,30 @@ public class EventService {
         return eventsList.stream()
                 .map(entityConverter::toDomain)
                 .toList();
+    }
+
+    @Scheduled(fixedRate = FIXED_RATE_INTERVAL)
+    @Transactional
+    public void eventUpdateStatus() {
+        List<EventEntity> events = eventRepository.findAllEventsByWaitStartOrStarted();
+        LocalDateTime timeNow = LocalDateTime.now();
+
+        for (EventEntity event : events) {
+            LocalDateTime eventStart = event.getDate();
+            LocalDateTime eventEnd = event.getDate().plusMinutes(event.getDuration());
+
+            if (event.getStatus().equals(EventStatus.WAIT_START.name())
+                    && eventStart.isBefore(timeNow)) {
+                event.setStatus(EventStatus.STARTED.name());
+                eventRepository.save(event);
+                log.info("event with id={} update status={}", event.getId(), event.getStatus());
+            }
+            if (event.getStatus().equals(EventStatus.STARTED.name())
+                    && eventEnd.isBefore(timeNow)) {
+                event.setStatus(EventStatus.FINISHED.name());
+                eventRepository.save(event);
+                log.info("event with id={} update status={}", event.getId(), event.getStatus());
+            }
+        }
     }
 }

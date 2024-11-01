@@ -24,7 +24,7 @@ public class UserService {
                 signUpRequest.login(),
                 hashPass,
                 signUpRequest.age(),
-                UserRole.USER.name()
+                UserRole.USER
         );
         var saved = userRepository.save(userToSave);
         return entityConverter.toDomain(saved);

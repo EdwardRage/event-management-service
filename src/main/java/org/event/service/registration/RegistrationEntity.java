@@ -1,8 +1,10 @@
-package org.event.service.event.registration;
+package org.event.service.registration;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.event.service.event.EventEntity;
+import org.event.service.user.UserEntity;
 
 import java.time.LocalDateTime;
 
@@ -15,7 +17,13 @@ public class RegistrationEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long eventId;
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id")
+    private EventEntity event;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserEntity user;
+
     private LocalDateTime created;
 }

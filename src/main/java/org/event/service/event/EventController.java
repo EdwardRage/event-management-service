@@ -32,8 +32,8 @@ public class EventController {
                 .body(event);
     }
 
-    /*удалить мероприятие может только админ или организатор мероприятия*/
     @DeleteMapping("/{eventId}")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     public ResponseEntity<Void> deleteEvent(@PathVariable Long eventId) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
@@ -44,6 +44,7 @@ public class EventController {
     }
 
     @GetMapping("/{eventId}")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     public ResponseEntity<EventDto> getEventById(@PathVariable Long eventId) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(dtoConverter.toDto(
@@ -53,6 +54,7 @@ public class EventController {
     }
 
     @PutMapping("/{eventId}")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     public ResponseEntity<EventDto> updateEvent(@PathVariable Long eventId,
                                                 @RequestBody @Valid EventDto eventDto) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
@@ -66,6 +68,7 @@ public class EventController {
     }
 
     @PostMapping("/search")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     public ResponseEntity<List<EventDto>> searchEvents(@RequestBody EventSearchFilter eventSearchFilter) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(
@@ -81,41 +84,6 @@ public class EventController {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
         List<EventDto> events = eventService.getEventsByOwner(currentUser.login()).stream()
-                .map(dtoConverter::toDto)
-                .toList();
-
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(events);
-    }
-
-    @PostMapping("/registrations/{eventId}")
-    @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<Void> userRegistrationForEvent(@PathVariable Long eventId) {
-        var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
-
-        eventService.userRegistrationForEvent(eventId, currentUser.login());
-        log.info("User with userId={} successful register for event withe eventId={}", currentUser.login(), eventId);
-        return ResponseEntity.status(HttpStatus.OK)
-                .build();
-    }
-
-    @DeleteMapping("/registrations/cansel/{eventId}")
-    @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<Void> canselRegistration(@PathVariable Long eventId) {
-        var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
-
-        eventService.canselRegistration(eventId, currentUser.login());
-        log.info("Registration cansel");
-        return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                .build();
-    }
-
-    @GetMapping("/registrations/my")
-    @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<List<EventDto>> getEventsRegistrationByUser() {
-        var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
-
-        List<EventDto> events = eventService.getEventsByUser(currentUser.login()).stream()
                 .map(dtoConverter::toDto)
                 .toList();
 

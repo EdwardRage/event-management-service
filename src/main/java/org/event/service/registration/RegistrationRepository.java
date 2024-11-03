@@ -1,5 +1,6 @@
 package org.event.service.registration;
 
+import org.event.service.event.EventEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -18,8 +19,8 @@ public interface RegistrationRepository extends JpaRepository<RegistrationEntity
     Optional<RegistrationEntity> findByEventIdAndUserId(Long eventId, Long userId);
 
     @Query("""
-        select reg.event.id from RegistrationEntity reg
+        select reg.event from RegistrationEntity reg
         where reg.user.id = :userId
-        """)
-    List<Long> findEventIdsByUserId(Long userId);
+    """)
+    List<EventEntity> findRegisteredEvents(Long userId);
 }

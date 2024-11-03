@@ -7,11 +7,9 @@ import org.event.service.location.LocationRepository;
 import org.event.service.user.UserEntity;
 import org.event.service.user.UserRepository;
 import org.event.service.user.UserRole;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -22,7 +20,6 @@ public class EventService {
     private final EventEntityConverter entityConverter;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
-    private final static Long FIXED_RATE_INTERVAL = 60_000L;
 
     public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -53,7 +50,6 @@ public class EventService {
         );
     }
 
-    @Transactional
     public void deleteEvent(Long eventId, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -141,30 +137,6 @@ public class EventService {
 
         if (!event.getStatus().equals(EventStatus.WAIT_START)) {
             throw new IllegalArgumentException("the event cannot be cancelled or update");
-        }
-    }
-
-    @Scheduled(fixedRate = 60_000L)
-    public void eventUpdateStatus() {
-        List<EventEntity> events = eventRepository.findAllEventsByWaitStartOrStarted();
-        LocalDateTime timeNow = LocalDateTime.now();
-
-        for (EventEntity event : events) {
-            LocalDateTime eventStart = event.getDate();
-            LocalDateTime eventEnd = event.getDate().plusMinutes(event.getDuration());
-
-            if (event.getStatus().equals(EventStatus.WAIT_START)
-                    && eventStart.isBefore(timeNow)) {
-                event.setStatus(EventStatus.STARTED);
-                eventRepository.save(event);
-                log.info("event with id={} update status={}", event.getId(), event.getStatus());
-            }
-            if (event.getStatus().equals(EventStatus.STARTED)
-                    && eventEnd.isBefore(timeNow)) {
-                event.setStatus(EventStatus.FINISHED);
-                eventRepository.save(event);
-                log.info("event with id={} update status={}", event.getId(), event.getStatus());
-            }
         }
     }
 }

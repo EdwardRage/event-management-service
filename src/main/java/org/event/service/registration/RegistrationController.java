@@ -32,13 +32,13 @@ public class RegistrationController {
                 .build();
     }
 
-    @DeleteMapping("/cansel/{eventId}")
+    @DeleteMapping("/cancel/{eventId}")
     @PreAuthorize("hasAuthority('USER')")
-    public ResponseEntity<Void> canselRegistration(@PathVariable Long eventId) {
+    public ResponseEntity<Void> cancelRegistration(@PathVariable Long eventId) {
         var currentUser = authenticationService.getCurrentAuthenticationUserOrThrow();
 
-        registrationService.canselRegistration(eventId, currentUser.login());
-        log.info("Registration cansel");
+        registrationService.cancelRegistration(eventId, currentUser.login());
+        log.info("Registration cancel");
         return ResponseEntity.status(HttpStatus.NO_CONTENT)
                 .build();
     }

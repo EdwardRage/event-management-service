@@ -6,7 +6,6 @@ import org.event.service.event.*;
 import org.event.service.user.UserEntity;
 import org.event.service.user.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -19,7 +18,6 @@ public class RegistrationService {
     private final UserRepository userRepository;
     private final EventEntityConverter entityConverter;
 
-    @Transactional
     public void userRegistrationForEvent(Long eventId, String login) {
 
         var event = eventRepository.findById(eventId)
@@ -42,8 +40,7 @@ public class RegistrationService {
         registrationRepository.save(registration);
     }
 
-    @Transactional
-    public void canselRegistration(Long eventId, String login) {
+    public void cancelRegistration(Long eventId, String login) {
         var user = userRepository.findByLogin(login)
                 .orElseThrow();
 
@@ -53,7 +50,7 @@ public class RegistrationService {
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
 
         if (!event.getStatus().equals(EventStatus.WAIT_START)) {
-            throw new IllegalArgumentException("Already cannot cansel registration");
+            throw new IllegalArgumentException("Already cannot cancel registration");
         }
         registrationRepository.delete(registration);
 
@@ -65,9 +62,7 @@ public class RegistrationService {
         var user = userRepository.findByLogin(login)
                 .orElseThrow();
 
-        List<Long> eventIds = registrationRepository.findEventIdsByUserId(user.getId());
-
-        List<EventEntity> eventsList = eventRepository.findAllEvents(eventIds);
+        List<EventEntity> eventsList = registrationRepository.findRegisteredEvents(user.getId());
 
         return eventsList.stream()
                 .map(entityConverter::toDomain)

@@ -23,7 +23,7 @@ public class DefaultDataInitializer {
                     "admin",
                     hashPass,
                     25,
-                    UserRole.ADMIN.name()
+                    UserRole.ADMIN
             );
             userRepository.save(admin);
             log.info("Default admin created");
@@ -38,7 +38,7 @@ public class DefaultDataInitializer {
                     "user",
                     hashPass,
                     25,
-                    UserRole.USER.name()
+                    UserRole.USER
             );
             userRepository.save(user);
             log.info("Default user created");

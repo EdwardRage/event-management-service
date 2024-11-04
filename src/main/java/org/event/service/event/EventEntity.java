@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.event.service.location.LocationEntity;
+import org.event.service.user.UserEntity;
 
 import java.time.LocalDateTime;
 
@@ -23,9 +25,17 @@ public class EventEntity {
     private Integer duration;
     private Integer cost;
     private Integer maxPlaces;
-    private Long locationId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "location_id")
+    private LocationEntity location;
     private String name;
-    private Long ownerId;
-    private String status;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private UserEntity owner;
+
+    @Enumerated(EnumType.STRING)
+    private EventStatus status;
     private Integer occupiedPlaces;
 }

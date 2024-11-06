@@ -3,6 +3,7 @@ package org.event.service.event;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.event.service.event.kafka.*;
 import org.event.service.location.LocationRepository;
 import org.event.service.user.UserEntity;
 import org.event.service.user.UserRepository;
@@ -20,6 +21,7 @@ public class EventService {
     private final EventEntityConverter entityConverter;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
+    private final EventKafkaSender eventKafkaSender;
 
     public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -89,6 +91,16 @@ public class EventService {
             eventDto.locationId(),
             eventDto.name()
         );
+
+        eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
+                event.getId(),
+                new FieldChangeString(event.getName(), eventDto.name()),
+                new FieldChangeInteger(event.getMaxPlaces(), eventDto.maxPlaces()),
+                new FieldChangeDateTime(event.getDate(), eventDto.date()),
+                new FieldChangeInteger(event.getCost(), eventDto.cost()),
+                new FieldChangeInteger(event.getDuration(), eventDto.duration()),
+                new FieldChangeLong(event.getLocation().getId(), eventDto.locationId())
+        ));
 
         return entityConverter.toDomain(
                 eventRepository.findById(eventId).orElseThrow()

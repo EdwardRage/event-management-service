@@ -17,7 +17,7 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
             ev.duration = :duration,
             ev.cost = :cost,
             ev.maxPlaces = :maxPlaces,
-            ev.location = :locationId,
+            ev.location.id = :locationId,
             ev.name = :name
         where ev.id = :eventId
         """)

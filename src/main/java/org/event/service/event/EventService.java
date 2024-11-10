@@ -44,7 +44,8 @@ public class EventService {
                 newEvent.name(),
                 owner,
                 EventStatus.WAIT_START,
-                0
+                0,
+                List.of()
         );
 
         return entityConverter.toDomain(
@@ -61,6 +62,23 @@ public class EventService {
         checkDenied(event, user);
         checkEventStatusForStarted(event);
 
+        List<Long> users = event.getRegistrationList().stream()
+                        .map(reg -> reg.getUser().getId())
+                        .toList();
+
+        eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
+                event.getId(),
+                event.getOwner().getId(),
+                users,
+                user.getId(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FieldChange<>(event.getStatus().name(), EventStatus.CLOSED.name())
+        ));
         event.setStatus(EventStatus.CLOSED);
         eventRepository.save(event);
     }
@@ -92,14 +110,28 @@ public class EventService {
             eventDto.name()
         );
 
+        List<Long> users = event.getRegistrationList().stream()
+                .map(reg -> reg.getUser().getId())
+                .toList();
+
         eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
                 event.getId(),
-                new FieldChangeString(event.getName(), eventDto.name()),
+                event.getOwner().getId(),
+                users,
+                user.getId(),
+                /*new FieldChangeString(event.getName(), eventDto.name()),
                 new FieldChangeInteger(event.getMaxPlaces(), eventDto.maxPlaces()),
                 new FieldChangeDateTime(event.getDate(), eventDto.date()),
                 new FieldChangeInteger(event.getCost(), eventDto.cost()),
                 new FieldChangeInteger(event.getDuration(), eventDto.duration()),
-                new FieldChangeLong(event.getLocation().getId(), eventDto.locationId())
+                new FieldChangeLong(event.getLocation().getId(), eventDto.locationId()),*/
+                new FieldChange<>(event.getName(), eventDto.name()),
+                new FieldChange<>(event.getMaxPlaces(), eventDto.maxPlaces()),
+                new FieldChange<>(event.getDate(), eventDto.date()),
+                new FieldChange<>(event.getCost(), eventDto.cost()),
+                new FieldChange<>(event.getDuration(), eventDto.duration()),
+                new FieldChange<>(event.getLocation().getId(), eventDto.locationId()),
+                null
         ));
 
         return entityConverter.toDomain(

@@ -41,6 +41,7 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
 
     @Query("""
         select ev from EventEntity ev
+        join fetch ev.registrationList
         where ev.status = 'WAIT_START' or ev.status = 'STARTED'
         """)
     List<EventEntity> findAllEventsByWaitStartOrStarted();

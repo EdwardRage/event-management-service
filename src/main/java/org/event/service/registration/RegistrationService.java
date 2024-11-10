@@ -28,9 +28,6 @@ public class RegistrationService {
 
         checkRegistrationCondition(event, user);
 
-        event.setOccupiedPlaces(event.getOccupiedPlaces() + 1);
-        eventRepository.save(event);
-
         var registration = new RegistrationEntity(
                 null,
                 event,
@@ -38,6 +35,10 @@ public class RegistrationService {
                 LocalDateTime.now()
         );
         registrationRepository.save(registration);
+
+        event.setOccupiedPlaces(event.getOccupiedPlaces() + 1);
+        event.getRegistrationList().add(registration);
+        eventRepository.save(event);
     }
 
     public void cancelRegistration(Long eventId, String login) {
@@ -55,6 +56,7 @@ public class RegistrationService {
         registrationRepository.delete(registration);
 
         event.setOccupiedPlaces(event.getOccupiedPlaces() - 1);
+        event.getRegistrationList().remove(registration);
         eventRepository.save(event);
     }
 

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class EventKafkaSender {
     private final KafkaTemplate<Long, EventChangeNotification> kafkaTemplate;
 
-    public void setEventChangeNotification(EventChangeNotification eventChange) {
+    public void sendEventChangeNotification(EventChangeNotification eventChange) {
         log.info("Sending event={}", eventChange);
         var result = kafkaTemplate.send(
                 "event-topic",

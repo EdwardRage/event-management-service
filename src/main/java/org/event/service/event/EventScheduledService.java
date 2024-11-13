@@ -15,6 +15,7 @@ import java.util.List;
 public class EventScheduledService {
     private final EventRepository eventRepository;
     private final EventKafkaSender eventKafkaSender;
+    private final EventEntityConverter entityConverter;
 
     @Scheduled(fixedRate = 60_000L)
     public void eventUpdateStatus() {
@@ -28,7 +29,9 @@ public class EventScheduledService {
             if (event.getStatus().equals(EventStatus.WAIT_START)
                     && eventStart.isBefore(timeNow)) {
 
-                sendKafka(event, EventStatus.STARTED);
+                List<Long> users = getUsersIds(event);
+                Event eventDomain = entityConverter.toDomain(event);
+                sendKafka(eventDomain, EventStatus.STARTED, users);
 
                 event.setStatus(EventStatus.STARTED);
                 eventRepository.save(event);
@@ -37,7 +40,9 @@ public class EventScheduledService {
             if (event.getStatus().equals(EventStatus.STARTED)
                     && eventEnd.isBefore(timeNow)) {
 
-                sendKafka(event, EventStatus.FINISHED);
+                List<Long> users = getUsersIds(event);
+                Event eventDomain = entityConverter.toDomain(event);
+                sendKafka(eventDomain, EventStatus.FINISHED, users);
 
                 event.setStatus(EventStatus.FINISHED);
                 eventRepository.save(event);
@@ -46,13 +51,16 @@ public class EventScheduledService {
         }
     }
 
-    private void sendKafka(EventEntity event, EventStatus status) {
-        List<Long> users = event.getRegistrationList().stream()
-                        .map(reg -> reg.getUser().getId())
-                        .toList();
-        eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
-                event.getId(),
-                event.getOwner().getId(),
+    private List<Long> getUsersIds(EventEntity event) {
+        return event.getRegistrationList().stream()
+                .map(reg -> reg.getUser().getId())
+                .toList();
+    }
+
+    private void sendKafka(Event event, EventStatus status, List<Long> users) {
+        eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
+                event.id(),
+                event.ownerId(),
                 users,
                 null,
                 null,
@@ -61,7 +69,7 @@ public class EventScheduledService {
                 null,
                 null,
                 null,
-                new FieldChange<>(event.getStatus().name(), status.name())
+                new FieldChange<>(event.status().name(), status.name())
         ));
     }
 }

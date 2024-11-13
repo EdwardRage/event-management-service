@@ -5,9 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.event.service.event.kafka.*;
 import org.event.service.location.LocationRepository;
-import org.event.service.user.UserEntity;
-import org.event.service.user.UserRepository;
-import org.event.service.user.UserRole;
+import org.event.service.user.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +20,7 @@ public class EventService {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final EventKafkaSender eventKafkaSender;
+    private final UserEntityConverter userConverter;
 
     public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -66,18 +65,21 @@ public class EventService {
                         .map(reg -> reg.getUser().getId())
                         .toList();
 
-        eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
-                event.getId(),
-                event.getOwner().getId(),
+        Event eventDomain = entityConverter.toDomain(event);
+        User userDomain = userConverter.toDomain(user);
+
+        eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
+                eventDomain.id(),
+                eventDomain.id(),
                 users,
-                user.getId(),
+                userDomain.id(),
                 null,
                 null,
                 null,
                 null,
                 null,
                 null,
-                new FieldChange<>(event.getStatus().name(), EventStatus.CLOSED.name())
+                new FieldChange<>(eventDomain.status().name(), EventStatus.CLOSED.name())
         ));
         event.setStatus(EventStatus.CLOSED);
         eventRepository.save(event);
@@ -114,23 +116,20 @@ public class EventService {
                 .map(reg -> reg.getUser().getId())
                 .toList();
 
-        eventKafkaSender.setEventChangeNotification(new EventChangeNotification(
-                event.getId(),
-                event.getOwner().getId(),
+        Event eventDomain = entityConverter.toDomain(event);
+        User userDomain = userConverter.toDomain(user);
+
+        eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
+                eventDomain.id(),
+                eventDomain.ownerId(),
                 users,
-                user.getId(),
-                /*new FieldChangeString(event.getName(), eventDto.name()),
-                new FieldChangeInteger(event.getMaxPlaces(), eventDto.maxPlaces()),
-                new FieldChangeDateTime(event.getDate(), eventDto.date()),
-                new FieldChangeInteger(event.getCost(), eventDto.cost()),
-                new FieldChangeInteger(event.getDuration(), eventDto.duration()),
-                new FieldChangeLong(event.getLocation().getId(), eventDto.locationId()),*/
-                new FieldChange<>(event.getName(), eventDto.name()),
-                new FieldChange<>(event.getMaxPlaces(), eventDto.maxPlaces()),
-                new FieldChange<>(event.getDate(), eventDto.date()),
-                new FieldChange<>(event.getCost(), eventDto.cost()),
-                new FieldChange<>(event.getDuration(), eventDto.duration()),
-                new FieldChange<>(event.getLocation().getId(), eventDto.locationId()),
+                userDomain.id(),
+                new FieldChange<>(eventDomain.name(), eventDto.name()),
+                new FieldChange<>(eventDomain.maxPlaces(), eventDto.maxPlaces()),
+                new FieldChange<>(eventDomain.eventDate(), eventDto.date()),
+                new FieldChange<>(eventDomain.cost(), eventDto.cost()),
+                new FieldChange<>(eventDomain.duration(), eventDto.duration()),
+                new FieldChange<>(eventDomain.locationId(), eventDto.locationId()),
                 null
         ));
 

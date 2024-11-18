@@ -6,9 +6,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.event.service.location.LocationEntity;
+import org.event.service.registration.RegistrationEntity;
 import org.event.service.user.UserEntity;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "event")
@@ -38,4 +40,7 @@ public class EventEntity {
     @Enumerated(EnumType.STRING)
     private EventStatus status;
     private Integer occupiedPlaces;
+
+    @OneToMany(mappedBy = "event")
+    private List<RegistrationEntity> registrationList;
 }

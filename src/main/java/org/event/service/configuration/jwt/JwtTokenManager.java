@@ -2,6 +2,7 @@ package org.event.service.configuration.jwt;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.event.service.user.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,11 +28,12 @@ public class JwtTokenManager {
         this.expirationTime = expirationTime;
     }
 
-    public String generateJwt(String login, String role) {
+    public String generateJwt(User user) {
         return Jwts
                 .builder()
-                .subject(login)
-                .claim("role", role)
+                .subject(user.login())
+                .claim("role", user.role())
+                .claim("id", user.id())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(key)
@@ -56,6 +58,16 @@ public class JwtTokenManager {
                 .parseSignedClaims(jwt)
                 .getPayload()
                 .get("role", String.class);
+    }
+
+    public Long getIdFromJwt(String jwt) {
+        return Jwts
+                .parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(jwt)
+                .getPayload()
+                .get("id", Long.class);
     }
 }
 

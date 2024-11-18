@@ -17,7 +17,7 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
             ev.duration = :duration,
             ev.cost = :cost,
             ev.maxPlaces = :maxPlaces,
-            ev.location = :locationId,
+            ev.location.id = :locationId,
             ev.name = :name
         where ev.id = :eventId
         """)
@@ -41,6 +41,7 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
 
     @Query("""
         select ev from EventEntity ev
+        join fetch ev.registrationList
         where ev.status = 'WAIT_START' or ev.status = 'STARTED'
         """)
     List<EventEntity> findAllEventsByWaitStartOrStarted();
@@ -71,4 +72,15 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
             @Param("name") String name,
             @Param("costMin") Integer costMin,
             @Param("costMax") Integer costMax);
+
+    @Modifying
+    @Query("""
+        update EventEntity ev
+        set ev.status = :status
+        where ev.id = :eventId
+        """)
+    void updateEventByStatus(
+            Long eventId,
+            EventStatus status
+    );
 }

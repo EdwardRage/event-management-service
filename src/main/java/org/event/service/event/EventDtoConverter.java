@@ -31,7 +31,8 @@ public class EventDtoConverter {
                 eventDto.name(),
                 eventDto.ownerId(),
                 eventDto.status(),
-                eventDto.occupiedPlaces()
+                eventDto.occupiedPlaces(),
+                null
         );
     }
 }

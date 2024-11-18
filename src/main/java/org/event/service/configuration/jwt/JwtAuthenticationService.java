@@ -1,9 +1,8 @@
 package org.event.service.configuration.jwt;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.event.service.user.SignInRequest;
-import org.event.service.user.UserJwt;
-import org.event.service.user.UserRole;
+import org.event.service.user.*;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,6 +13,8 @@ import org.springframework.stereotype.Service;
 public class JwtAuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final JwtTokenManager jwtTokenManager;
+    private final UserRepository userRepository;
+    private final UserEntityConverter entityConverter;
 
     public String authenticationUser(SignInRequest signInRequest) {
         authenticationManager.authenticate(
@@ -22,11 +23,11 @@ public class JwtAuthenticationService {
                         signInRequest.password()
                 )
         );
-        if (signInRequest.login().equals("admin")) {
-            return jwtTokenManager.generateJwt(signInRequest.login(), UserRole.ADMIN.name());
-        } else {
-            return jwtTokenManager.generateJwt(signInRequest.login(), UserRole.USER.name());
-        }
+        User user = entityConverter.toDomain(
+                userRepository.findByLogin(signInRequest.login())
+                        .orElseThrow(() -> new EntityNotFoundException("User not found"))
+        );
+        return jwtTokenManager.generateJwt(user);
     }
 
     public UserJwt getCurrentAuthenticationUserOrThrow() {

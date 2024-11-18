@@ -3,10 +3,9 @@ package org.event.service.event;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.event.service.event.kafka.*;
 import org.event.service.location.LocationRepository;
-import org.event.service.user.UserEntity;
-import org.event.service.user.UserRepository;
-import org.event.service.user.UserRole;
+import org.event.service.user.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +19,8 @@ public class EventService {
     private final EventEntityConverter entityConverter;
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
+    private final EventKafkaSender eventKafkaSender;
+    private final UserEntityConverter userConverter;
 
     public Event createEvent(Event newEvent, String login) {
         var locationEvent = locationRepository.findById(newEvent.locationId())
@@ -42,7 +43,8 @@ public class EventService {
                 newEvent.name(),
                 owner,
                 EventStatus.WAIT_START,
-                0
+                0,
+                List.of()
         );
 
         return entityConverter.toDomain(
@@ -59,6 +61,26 @@ public class EventService {
         checkDenied(event, user);
         checkEventStatusForStarted(event);
 
+        List<Long> users = event.getRegistrationList().stream()
+                        .map(reg -> reg.getUser().getId())
+                        .toList();
+
+        Event eventDomain = entityConverter.toDomain(event);
+        User userDomain = userConverter.toDomain(user);
+
+        eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
+                eventDomain.id(),
+                eventDomain.id(),
+                users,
+                userDomain.id(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                new FieldChange<>(eventDomain.status().name(), EventStatus.CLOSED.name())
+        ));
         event.setStatus(EventStatus.CLOSED);
         eventRepository.save(event);
     }
@@ -70,7 +92,7 @@ public class EventService {
         return entityConverter.toDomain(event);
     }
 
-    @Transactional()
+    @Transactional
     public Event updateEvent(Long eventId, EventDto eventDto, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));
@@ -89,6 +111,27 @@ public class EventService {
             eventDto.locationId(),
             eventDto.name()
         );
+
+        List<Long> users = event.getRegistrationList().stream()
+                .map(reg -> reg.getUser().getId())
+                .toList();
+
+        Event eventDomain = entityConverter.toDomain(event);
+        User userDomain = userConverter.toDomain(user);
+
+        eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
+                eventDomain.id(),
+                eventDomain.ownerId(),
+                users,
+                userDomain.id(),
+                new FieldChange<>(eventDomain.name(), eventDto.name()),
+                new FieldChange<>(eventDomain.maxPlaces(), eventDto.maxPlaces()),
+                new FieldChange<>(eventDomain.eventDate(), eventDto.date()),
+                new FieldChange<>(eventDomain.cost(), eventDto.cost()),
+                new FieldChange<>(eventDomain.duration(), eventDto.duration()),
+                new FieldChange<>(eventDomain.locationId(), eventDto.locationId()),
+                null
+        ));
 
         return entityConverter.toDomain(
                 eventRepository.findById(eventId).orElseThrow()

@@ -42,9 +42,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         String login;
         String role;
+        Long id;
         try {
             login = jwtTokenManager.getLoginFromJwt(jwtToken);
             role = jwtTokenManager.getRoleFromJwt(jwtToken);
+            id = jwtTokenManager.getIdFromJwt(jwtToken);
         } catch (Exception e) {
             log.error("Error while reading jwt", e);
             filterChain.doFilter(request, response);
@@ -53,7 +55,8 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         var user = new UserJwt(
                 login,
-                role
+                role,
+                id
         );
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(

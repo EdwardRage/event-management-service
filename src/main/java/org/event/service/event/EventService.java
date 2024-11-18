@@ -92,7 +92,7 @@ public class EventService {
         return entityConverter.toDomain(event);
     }
 
-    @Transactional()
+    @Transactional
     public Event updateEvent(Long eventId, EventDto eventDto, String login) {
         var event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EntityNotFoundException("Event with id = " + eventId + " not found"));

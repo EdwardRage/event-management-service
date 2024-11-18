@@ -19,49 +19,40 @@ public class EventScheduledService {
 
     @Scheduled(fixedRate = 60_000L)
     public void eventUpdateStatus() {
-        List<EventEntity> events = eventRepository.findAllEventsByWaitStartOrStarted();
+
+        List<Event> eventDomain = eventRepository.findAllEventsByWaitStartOrStarted().stream()
+                .map(entityConverter::toDomain)
+                .toList();
+
         LocalDateTime timeNow = LocalDateTime.now();
 
-        for (EventEntity event : events) {
-            LocalDateTime eventStart = event.getDate();
-            LocalDateTime eventEnd = event.getDate().plusMinutes(event.getDuration());
+        for (Event event : eventDomain) {
+            LocalDateTime eventStart = event.eventDate();
+            LocalDateTime eventEnd = event.eventDate().plusMinutes(event.duration());
 
-            if (event.getStatus().equals(EventStatus.WAIT_START)
+            if (event.status().equals(EventStatus.WAIT_START)
                     && eventStart.isBefore(timeNow)) {
 
-                List<Long> users = getUsersIds(event);
-                Event eventDomain = entityConverter.toDomain(event);
-                sendKafka(eventDomain, EventStatus.STARTED, users);
+                eventRepository.updateEventByStatus(event.id(), EventStatus.STARTED);
+                sendKafka(event, EventStatus.STARTED);
+                log.info("event with id={} update status={}", event.id(), event.status());
 
-                event.setStatus(EventStatus.STARTED);
-                eventRepository.save(event);
-                log.info("event with id={} update status={}", event.getId(), event.getStatus());
             }
-            if (event.getStatus().equals(EventStatus.STARTED)
+            if (event.status().equals(EventStatus.STARTED)
                     && eventEnd.isBefore(timeNow)) {
 
-                List<Long> users = getUsersIds(event);
-                Event eventDomain = entityConverter.toDomain(event);
-                sendKafka(eventDomain, EventStatus.FINISHED, users);
-
-                event.setStatus(EventStatus.FINISHED);
-                eventRepository.save(event);
-                log.info("event with id={} update status={}", event.getId(), event.getStatus());
+                eventRepository.updateEventByStatus(event.id(), EventStatus.FINISHED);
+                sendKafka(event, EventStatus.FINISHED);
+                log.info("event with id={} update status={}", event.id(), event.status());
             }
         }
     }
 
-    private List<Long> getUsersIds(EventEntity event) {
-        return event.getRegistrationList().stream()
-                .map(reg -> reg.getUser().getId())
-                .toList();
-    }
-
-    private void sendKafka(Event event, EventStatus status, List<Long> users) {
+    private void sendKafka(Event event, EventStatus status) {
         eventKafkaSender.sendEventChangeNotification(new EventChangeNotification(
                 event.id(),
                 event.ownerId(),
-                users,
+                event.users(),
                 null,
                 null,
                 null,

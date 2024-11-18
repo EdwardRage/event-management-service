@@ -72,4 +72,15 @@ public interface EventRepository extends JpaRepository<EventEntity, Long> {
             @Param("name") String name,
             @Param("costMin") Integer costMin,
             @Param("costMax") Integer costMax);
+
+    @Modifying
+    @Query("""
+        update EventEntity ev
+        set ev.status = :status
+        where ev.id = :eventId
+        """)
+    void updateEventByStatus(
+            Long eventId,
+            EventStatus status
+    );
 }

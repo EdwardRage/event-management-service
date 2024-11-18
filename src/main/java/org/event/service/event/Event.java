@@ -1,6 +1,7 @@
 package org.event.service.event;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record Event(
         Long id,
@@ -12,6 +13,7 @@ public record Event(
         String name,
         Long ownerId,
         EventStatus status,
-        Integer occupiedPlaces
+        Integer occupiedPlaces,
+        List<Long> users
 ) {
 }

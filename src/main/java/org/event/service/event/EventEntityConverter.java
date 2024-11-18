@@ -2,6 +2,8 @@ package org.event.service.event;
 
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class EventEntityConverter {
 
@@ -16,7 +18,14 @@ public class EventEntityConverter {
                 eventEntity.getName(),
                 eventEntity.getOwner().getId(),
                 eventEntity.getStatus(),
-                eventEntity.getOccupiedPlaces()
+                eventEntity.getOccupiedPlaces(),
+                getUsersIds(eventEntity)
         );
+    }
+
+    private List<Long> getUsersIds(EventEntity event) {
+        return event.getRegistrationList().stream()
+                .map(reg -> reg.getUser().getId())
+                .toList();
     }
 }

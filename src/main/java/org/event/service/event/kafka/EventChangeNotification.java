@@ -14,27 +14,6 @@ public record EventChangeNotification(
 
         @Nullable
         Long changedId,
-
-        /*@Nullable
-        FieldChangeString name,
-
-        @Nullable
-        FieldChangeInteger maxPlace,
-
-        @Nullable
-        FieldChangeDateTime date,
-
-        @Nullable
-        FieldChangeInteger cost,
-
-        @Nullable
-        FieldChangeInteger duration,
-
-        @Nullable
-        FieldChangeLong locationId,
-
-        @Nullable
-        FieldChangeString status*/
         @Nullable
         FieldChange<String> name,
         FieldChange<Integer> maxPlace,
